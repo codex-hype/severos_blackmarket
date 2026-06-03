@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <?php
 include "../service/database.php";
 
@@ -328,3 +329,5 @@ $summaryCards = [
 </body>
 
 </html>
+=======
+>>>>>>> 479298e81e2e7d3f4e5172aa6293f69da2e96c07
