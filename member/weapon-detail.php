@@ -1,6 +1,9 @@
 <?php
 include "../service/database.php";
-include __DIR__ . '/../includes/session.php';
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 if (!isset($_SESSION["is_login"]) || $_SESSION["is_login"] !== true || $_SESSION["role"] !== 'guest') {
     header("Location: ../login.php");

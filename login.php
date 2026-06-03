@@ -1,6 +1,9 @@
 <?php
 include "service/database.php";
-include __DIR__ . "/includes/session.php";
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 $errors = [];
 $checkBrowserSession = false;
@@ -12,15 +15,20 @@ if (isset($_SESSION["is_login"]) && $_SESSION["is_login"] === true) {
 }
 
 if (isset($_POST["login"])) {
-    $email = trim($_POST['email']);
-
+    $credential = trim($_POST['email']);
     $password = trim($_POST['password']);
 
-    if (empty($email) || empty($password)) {
+    if (empty($credential) || empty($password)) {
         $errors[] = 'Semua field wajib diisi.';
     } else {
-        if (!preg_match('/^[^@]+@gmail\.com$/', $email)) {
-            $errors['email'] = 'Email harus menggunakan @gmail.com.';
+        if (strpos($credential, '@') !== false) {
+            if (!filter_var($credential, FILTER_VALIDATE_EMAIL)) {
+                $errors['email'] = 'Email tidak valid.';
+            }
+        } else {
+            if (strlen($credential) < 3) {
+                $errors['email'] = 'Email atau username tidak valid.';
+            }
         }
         if (strlen($password) < 8) {
             $errors['password'] = 'Password minimal 8 karakter.';
@@ -28,12 +36,12 @@ if (isset($_POST["login"])) {
     }
     if (empty($errors)) {
 
-        $sql = "SELECT * FROM msuser WHERE email = ?";
+        $sql = "SELECT * FROM msuser WHERE email = ? OR username = ? LIMIT 1";
         $stmt = $db->prepare($sql);
         if (!$stmt) {
             $errors['general'] = 'Database error. Please try again later.';
         } else {
-            $stmt->bind_param("s", $email);
+            $stmt->bind_param("ss", $credential, $credential);
             $stmt->execute();
             $result = $stmt->get_result();
 
@@ -44,6 +52,9 @@ if (isset($_POST["login"])) {
                     $errors['password'] = 'Password salah.';
                 } else {
                     if ($row['role'] === 'admin') {
+                        if (session_status() !== PHP_SESSION_ACTIVE) {
+                            session_start();
+                        }
                         session_regenerate_id(true);
                         $_SESSION["is_login"] = true;
                         $_SESSION["email"] = $row['email'];
@@ -56,6 +67,9 @@ if (isset($_POST["login"])) {
                         header("Location: admin/dashboard.php?init=1");
                         exit();
                     } elseif ($row['role'] === 'guest') {
+                        if (session_status() !== PHP_SESSION_ACTIVE) {
+                            session_start();
+                        }
                         session_regenerate_id(true);
                         $_SESSION["is_login"] = true;
                         $_SESSION["email"] = $row['email'];
@@ -72,7 +86,7 @@ if (isset($_POST["login"])) {
                     }
                 }
             } else {
-                $errors['email'] = 'Email tidak ditemukan.';
+                $errors['email'] = 'Email atau username tidak ditemukan.';
             }
 
             if ($stmt) {
@@ -117,7 +131,7 @@ if (isset($_POST["login"])) {
 
                 <div class="form-group">
                     <label for="email">Email</label>
-                    <input type="email" id="email" name="email" placeholder="Enter your email"
+                    <input type="text" id="email" name="email" placeholder="Enter your email or username"
                         value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" />
                     <?php if (!empty($errors['email'])): ?>
                         <strong style="margin-top:6px; color:red; font-size:12px; font-style:italic; display:block;">

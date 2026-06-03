@@ -1,5 +1,4 @@
 <?php
-include "includes/session.php";
 include "service/database.php";
 ?>
 

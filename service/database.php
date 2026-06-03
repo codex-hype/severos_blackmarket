@@ -98,6 +98,47 @@ if ($weaponCount) {
     }
 }
 
+$createWeaponTypesTable = "CREATE TABLE IF NOT EXISTS weapon_types (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    type_name VARCHAR(100) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+
+if (!$db->query($createWeaponTypesTable)) {
+    die("Database setup failed: " . $db->error);
+}
+
+$existingTypesResult = $db->query("SELECT DISTINCT type FROM weapons");
+if ($existingTypesResult) {
+    $insertType = $db->prepare("INSERT IGNORE INTO weapon_types (type_name) VALUES (?)");
+    if ($insertType) {
+        while ($row = $existingTypesResult->fetch_assoc()) {
+            if (!empty($row['type'])) {
+                $insertType->bind_param('s', $row['type']);
+                $insertType->execute();
+            }
+        }
+        $insertType->close();
+    }
+}
+
+$weaponTypeCount = $db->query("SELECT COUNT(*) AS cnt FROM weapon_types");
+if ($weaponTypeCount) {
+    $typeRow = $weaponTypeCount->fetch_assoc();
+    if (isset($typeRow['cnt']) && (int)$typeRow['cnt'] === 0) {
+        $defaultTypes = ['Handgun', 'Assault Rifle', 'Machine Gun', 'Sniper Rifle', 'Shotgun', 'SMG'];
+        $insertType = $db->prepare("INSERT IGNORE INTO weapon_types (type_name) VALUES (?)");
+        if ($insertType) {
+            foreach ($defaultTypes as $type) {
+                $insertType->bind_param('s', $type);
+                $insertType->execute();
+            }
+            $insertType->close();
+        }
+    }
+}
+
 $createTransactionsTable = "CREATE TABLE IF NOT EXISTS transactions (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     user_id INT UNSIGNED NOT NULL,
@@ -107,12 +148,19 @@ $createTransactionsTable = "CREATE TABLE IF NOT EXISTS transactions (
     total_amount INT UNSIGNED NOT NULL,
     shipping_address TEXT NOT NULL,
     status ENUM('Pending','Completed','Cancelled') NOT NULL DEFAULT 'Completed',
+    payment_method ENUM('Debit Card','Credit Card','PayPal','Bank Transfer','Crypto') NOT NULL DEFAULT 'Debit Card',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
 
 if (!$db->query($createTransactionsTable)) {
     die("Database setup failed: " . $db->error);
+}
+
+// Ensure payment_method column exists for older schemas
+$colCheck = $db->query("SHOW COLUMNS FROM transactions LIKE 'payment_method'");
+if ($colCheck && $colCheck->num_rows === 0) {
+    $db->query("ALTER TABLE transactions ADD COLUMN payment_method ENUM('Debit Card','Credit Card','PayPal','Bank Transfer','Crypto') NOT NULL DEFAULT 'Debit Card'");
 }
 
 $createArsenalTable = "CREATE TABLE IF NOT EXISTS arsenal (

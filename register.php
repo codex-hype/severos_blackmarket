@@ -18,8 +18,8 @@ if (isset($_POST["register"])) {
         if (strlen($password) < 8) {
             $errors['password'] = 'Password minimal 8 karakter.';
         }
-        if (!preg_match('/^[^@]+@gmail\.com$/', $email)) {
-            $errors['email'] = 'Email harus menggunakan @gmail.com.';
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors['email'] = 'Email tidak valid.';
         }
     }
 
@@ -130,11 +130,7 @@ if (isset($_POST["register"])) {
         </div>
     </section>
 
+    <?php include "includes/footer.php"; ?>
 </body>
 
 </html>
-
-
-<?php
-include "includes/footer.php";
-?>

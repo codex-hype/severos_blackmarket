@@ -1,140 +1,145 @@
 <?php
 include "../service/database.php";
-include __DIR__ . '/../includes/session.php';
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 if (!isset($_SESSION["is_login"]) || $_SESSION["is_login"] !== true || $_SESSION["role"] !== 'admin') {
     header("Location: ../login.php");
     exit();
 }
 
-if (isset($_POST["logout"])) {
-    session_unset();
-    session_destroy();
-    header("Location: ../login.php");
-    exit();
-}
-
-$displayName = htmlspecialchars($_SESSION['username']);
+$message = '';
+$messageType = 'success';
 $errors = [];
-$success = '';
 
-$weaponId = isset($_GET['edit']) ? (int) $_GET['edit'] : 0;
-$editingWeapon = null;
+$weaponTypes = [];
+$typeResult = $db->query("SELECT id, type_name FROM weapon_types ORDER BY type_name ASC");
+if ($typeResult) {
+    while ($row = $typeResult->fetch_assoc()) {
+        $weaponTypes[] = $row;
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
-    $gun = trim($_POST['gun'] ?? '');
-    $rarity = trim($_POST['rarity'] ?? 'Common');
-    $type = trim($_POST['type'] ?? '');
-    $price = (int) ($_POST['price'] ?? 0);
-    $description = trim($_POST['description'] ?? '');
-    $damage = trim($_POST['damage'] ?? '');
-    $accuracy = trim($_POST['accuracy'] ?? '');
-    $fireRate = trim($_POST['fire_rate'] ?? '');
 
-    if ($action === 'delete') {
-        $deleteId = (int) ($_POST['weapon_id'] ?? 0);
-        if ($deleteId > 0) {
-            $stmt = $db->prepare("DELETE FROM weapons WHERE id = ?");
-            if ($stmt) {
-                $stmt->bind_param('i', $deleteId);
-                $stmt->execute();
-                if ($stmt->affected_rows >= 0) {
-                    $success = 'Weapon removed successfully.';
-                }
-                $stmt->close();
-            }
+    if ($action === 'add_weapon' || $action === 'update_weapon') {
+        $gun = trim($_POST['gun'] ?? '');
+        $rarity = trim($_POST['rarity'] ?? 'Common');
+        $type = trim($_POST['type'] ?? '');
+        $price = trim($_POST['price'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $damage = trim($_POST['damage'] ?? '');
+        $accuracy = trim($_POST['accuracy'] ?? '');
+        $fire_rate = trim($_POST['fire_rate'] ?? '');
+
+        if ($gun === '' || $type === '' || $price === '' || $description === '' || $damage === '' || $accuracy === '' || $fire_rate === '') {
+            $errors[] = 'All weapon fields are required.';
         }
-    } else {
-        if ($gun === '') {
-            $errors[] = 'Weapon name is required.';
+
+        if (!in_array($rarity, ['Common', 'Rare', 'Epic', 'Legendary'], true)) {
+            $errors[] = 'Please select a valid rarity.';
         }
-        if ($type === '') {
-            $errors[] = 'Weapon type is required.';
-        }
-        if ($price <= 0) {
-            $errors[] = 'Price must be greater than 0.';
-        }
-        if ($description === '') {
-            $errors[] = 'Description is required.';
-        }
-        if ($damage === '') {
-            $errors[] = 'Damage is required.';
-        }
-        if ($accuracy === '') {
-            $errors[] = 'Accuracy is required.';
-        }
-        if ($fireRate === '') {
-            $errors[] = 'Fire rate is required.';
+
+        if ($price !== '' && !preg_match('/^\d+$/', $price)) {
+            $errors[] = 'Price must be a valid whole number.';
         }
 
         if (empty($errors)) {
-            if ($action === 'add') {
-                $stmt = $db->prepare("INSERT INTO weapons (gun, rarity, type, price, description, damage, accuracy, fire_rate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                if ($stmt) {
-                    $stmt->bind_param('sssisiss', $gun, $rarity, $type, $price, $description, $damage, $accuracy, $fireRate);
-                    $stmt->execute();
-                    if ($stmt->affected_rows > 0) {
-                        $success = 'Weapon added successfully.';
-                        $gun = $type = $description = $damage = $accuracy = $fireRate = '';
-                        $price = 0;
-                    }
-                    $stmt->close();
+            $typeStmt = $db->prepare("SELECT id FROM weapon_types WHERE type_name = ?");
+            if ($typeStmt) {
+                $typeStmt->bind_param('s', $type);
+                $typeStmt->execute();
+                $typeStmt->store_result();
+                if ($typeStmt->num_rows === 0) {
+                    $errors[] = 'Selected weapon type does not exist.';
                 }
-            } elseif ($action === 'update') {
-                $updateId = (int) ($_POST['weapon_id'] ?? 0);
-                if ($updateId > 0) {
+                $typeStmt->close();
+            } else {
+                $errors[] = 'Unable to validate weapon type.';
+            }
+        }
+
+        if (empty($errors)) {
+            if ($action === 'update_weapon') {
+                $weaponId = intval($_POST['weapon_id'] ?? 0);
+                if ($weaponId <= 0) {
+                    $errors[] = 'Invalid weapon selected for update.';
+                } else {
                     $stmt = $db->prepare("UPDATE weapons SET gun = ?, rarity = ?, type = ?, price = ?, description = ?, damage = ?, accuracy = ?, fire_rate = ? WHERE id = ?");
                     if ($stmt) {
-                        $stmt->bind_param('sssissssi', $gun, $rarity, $type, $price, $description, $damage, $accuracy, $fireRate, $updateId);
-                        $stmt->execute();
-                        if ($stmt->affected_rows >= 0) {
-                            $success = 'Weapon updated successfully.';
+                        $stmt->bind_param('sssissssi', $gun, $rarity, $type, $price, $description, $damage, $accuracy, $fire_rate, $weaponId);
+                        if ($stmt->execute()) {
+                            $message = 'Weapon details updated successfully.';
+                        } else {
+                            $errors[] = 'Unable to update weapon. Please try again.';
                         }
                         $stmt->close();
+                    } else {
+                        $errors[] = 'Unable to update weapon. Please try again.';
                     }
+                }
+            } else {
+                $stmt = $db->prepare("INSERT INTO weapons (gun, rarity, type, price, description, damage, accuracy, fire_rate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                if ($stmt) {
+                    $stmt->bind_param('sssisiss', $gun, $rarity, $type, $price, $description, $damage, $accuracy, $fire_rate);
+                    if ($stmt->execute()) {
+                        $message = 'Weapon added to inventory successfully.';
+                    } else {
+                        $errors[] = 'Unable to add weapon. Please try again.';
+                    }
+                    $stmt->close();
+                } else {
+                    $errors[] = 'Unable to add weapon. Please try again.';
                 }
             }
         }
-    }
-
-    // Refresh editing state after changes
-    if ($action !== 'delete' && isset($_POST['weapon_id'])) {
-        $weaponId = (int) $_POST['weapon_id'];
+    } elseif ($action === 'delete_weapon') {
+        $weaponId = intval($_POST['weapon_id'] ?? 0);
+        if ($weaponId <= 0) {
+            $errors[] = 'Invalid weapon selection for deletion.';
+        } else {
+            $stmt = $db->prepare("DELETE FROM weapons WHERE id = ?");
+            if ($stmt) {
+                $stmt->bind_param('i', $weaponId);
+                if ($stmt->execute()) {
+                    $message = 'Weapon removed from inventory.';
+                } else {
+                    $errors[] = 'Unable to delete weapon. Please try again.';
+                }
+                $stmt->close();
+            } else {
+                $errors[] = 'Unable to delete weapon. Please try again.';
+            }
+        }
     }
 }
 
-if ($weaponId > 0) {
-    $stmt = $db->prepare("SELECT id, gun, rarity, type, price, description, damage, accuracy, fire_rate FROM weapons WHERE id = ? LIMIT 1");
+$editId = intval($_GET['edit_id'] ?? 0);
+$editWeapon = null;
+if ($editId > 0) {
+    $stmt = $db->prepare("SELECT * FROM weapons WHERE id = ?");
     if ($stmt) {
-        $stmt->bind_param('i', $weaponId);
+        $stmt->bind_param('i', $editId);
         $stmt->execute();
         $result = $stmt->get_result();
-        $editingWeapon = $result->fetch_assoc();
+        $editWeapon = $result ? $result->fetch_assoc() : null;
         $stmt->close();
-        if ($editingWeapon) {
-            $gun = $editingWeapon['gun'];
-            $rarity = $editingWeapon['rarity'];
-            $type = $editingWeapon['type'];
-            $price = $editingWeapon['price'];
-            $description = $editingWeapon['description'];
-            $damage = $editingWeapon['damage'];
-            $accuracy = $editingWeapon['accuracy'];
-            $fireRate = $editingWeapon['fire_rate'];
-        }
+    }
+    if (!$editWeapon) {
+        $errors[] = 'Selected weapon could not be loaded for editing.';
     }
 }
 
 $weapons = [];
-$result = $db->query("SELECT id, gun, rarity, type, price FROM weapons ORDER BY id DESC");
+$result = $db->query("SELECT * FROM weapons ORDER BY created_at DESC");
 if ($result) {
     while ($row = $result->fetch_assoc()) {
         $weapons[] = $row;
     }
-    $result->free();
 }
-
-$rarityOptions = ['Common', 'Rare', 'Epic', 'Legendary'];
 ?>
 
 <!DOCTYPE html>
@@ -143,132 +148,168 @@ $rarityOptions = ['Common', 'Rare', 'Epic', 'Legendary'];
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weapon Management</title>
+    <title>Admin Weapons</title>
     <link rel="stylesheet" href="../assets/style.css">
 </head>
 
 <body class="admin-body">
-    <main class="admin-shell">
-        <header class="admin-header">
-            <div>
-                <p class="admin-welcome">Admin: <strong><?php echo $displayName; ?></strong></p>
-                <p class="admin-subtitle">Manage weapon inventory and store listings.</p>
+    <?php include "../includes/header.php"; ?>
+
+    <main class="admin-dashboard">
+        <section class="admin-hero">
+            <div class="admin-hero-copy">
+                <p class="admin-badge">Administrator Panel</p>
+                <h1>Weapons</h1>
+                <p class="admin-lead">Add, update, or remove weapons from the inventory with a single administrator interface.</p>
             </div>
-            <form action="weapon.php" method="POST">
-                <button type="submit" name="logout" class="admin-button">Logout</button>
-            </form>
-        </header>
-
-        <?php include "admin_nav.php"; ?>
-
-        <section class="admin-content">
-            <div class="admin-page-header">
-                <h1>Weapon Management</h1>
-                <p>Add, edit, or remove weapons available in the marketplace.</p>
+            <div class="admin-hero-actions">
+                <a href="dashboard.php" class="btn-secondary">Dashboard</a>
+                <a href="weapon.php" class="btn-admin">Refresh</a>
             </div>
+        </section>
 
-            <?php if (!empty($success)): ?>
-                <div class="success-banner"><?php echo htmlspecialchars($success); ?></div>
-            <?php endif; ?>
-            <?php if (!empty($errors)): ?>
-                <div class="error-banner">
-                    <?php foreach ($errors as $error): ?>
-                        <p><?php echo htmlspecialchars($error); ?></p>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
+        <?php
+        $adminNavItems = [
+            'dashboard.php' => 'Dashboard',
+            'payment.php' => 'Payments',
+            'weapon.php' => 'Weapons',
+            'weapontype.php' => 'Weapon Types',
+        ];
+        $currentPage = basename($_SERVER['PHP_SELF']);
+        ?>
 
-            <div class="weapon-management-grid">
-                <div class="weapon-form-card">
-                    <h2><?php echo $editingWeapon ? 'Edit Weapon' : 'Add Weapon'; ?></h2>
-                    <form action="weapon.php<?php echo $editingWeapon ? '?edit=' . $editingWeapon['id'] : ''; ?>" method="POST">
-                        <input type="hidden" name="weapon_id" value="<?php echo htmlspecialchars($editingWeapon['id'] ?? 0); ?>">
-                        <div class="field-row">
-                            <label for="gun">Weapon name</label>
-                            <input id="gun" name="gun" type="text" value="<?php echo htmlspecialchars($gun ?? ''); ?>">
-                        </div>
-                        <div class="field-row">
-                            <label for="rarity">Rarity</label>
-                            <select id="rarity" name="rarity">
-                                <?php foreach ($rarityOptions as $option): ?>
-                                    <option value="<?php echo $option; ?>" <?php echo (isset($rarity) && $rarity === $option) ? 'selected' : ''; ?>><?php echo $option; ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="field-row">
-                            <label for="type">Type</label>
-                            <input id="type" name="type" type="text" value="<?php echo htmlspecialchars($type ?? ''); ?>">
-                        </div>
-                        <div class="field-row">
-                            <label for="price">Price</label>
-                            <input id="price" name="price" type="number" min="1" value="<?php echo htmlspecialchars($price ?? 0); ?>">
-                        </div>
-                        <div class="field-row">
-                            <label for="description">Description</label>
-                            <textarea id="description" name="description"><?php echo htmlspecialchars($description ?? ''); ?></textarea>
-                        </div>
-                        <div class="field-row">
-                            <label for="damage">Damage</label>
-                            <input id="damage" name="damage" type="text" value="<?php echo htmlspecialchars($damage ?? ''); ?>">
-                        </div>
-                        <div class="field-row">
-                            <label for="accuracy">Accuracy</label>
-                            <input id="accuracy" name="accuracy" type="text" value="<?php echo htmlspecialchars($accuracy ?? ''); ?>">
-                        </div>
-                        <div class="field-row">
-                            <label for="fire_rate">Fire rate</label>
-                            <input id="fire_rate" name="fire_rate" type="text" value="<?php echo htmlspecialchars($fireRate ?? ''); ?>">
-                        </div>
-                        <div class="button-row">
-                            <button type="submit" name="action" value="<?php echo $editingWeapon ? 'update' : 'add'; ?>" class="btn-primary"><?php echo $editingWeapon ? 'Save changes' : 'Add weapon'; ?></button>
-                            <?php if ($editingWeapon): ?>
-                                <a class="btn-secondary" href="weapon.php">Cancel edit</a>
-                            <?php endif; ?>
-                        </div>
-                    </form>
-                </div>
+        <nav class="admin-nav" aria-label="Admin navigation">
+            <ul>
+                <?php foreach ($adminNavItems as $file => $label): ?>
+                    <li>
+                        <a href="<?php echo htmlspecialchars($file); ?>" class="admin-nav-link <?php echo $currentPage === $file ? 'active' : ''; ?>">
+                            <?php echo htmlspecialchars($label); ?>
+                        </a>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        </nav>
 
-                <div class="weapon-table-card">
-                    <h2>Weapon catalog</h2>
+        <?php if (!empty($errors)): ?>
+            <div class="error-banner"><?php echo htmlspecialchars(implode(' ', $errors)); ?></div>
+        <?php elseif ($message): ?>
+            <div class="success-banner"><?php echo htmlspecialchars($message); ?></div>
+        <?php endif; ?>
+
+        <div class="weapon-management-grid">
+            <section class="weapon-form-card">
+                <h2><?php echo $editWeapon ? 'Edit Weapon' : 'Add New Weapon'; ?></h2>
+                <form method="post">
+                    <input type="hidden" name="action" value="<?php echo $editWeapon ? 'update_weapon' : 'add_weapon'; ?>">
+                    <?php if ($editWeapon): ?>
+                        <input type="hidden" name="weapon_id" value="<?php echo htmlspecialchars($editWeapon['id']); ?>">
+                    <?php endif; ?>
+
+                    <div class="field-row">
+                        <label for="gun">Weapon Name</label>
+                        <input id="gun" name="gun" type="text" value="<?php echo htmlspecialchars($_POST['gun'] ?? ($editWeapon['gun'] ?? '')); ?>" required>
+                    </div>
+
+                    <div class="field-row">
+                        <label for="rarity">Rarity</label>
+                        <select id="rarity" name="rarity" required>
+                            <?php foreach (['Common','Rare','Epic','Legendary'] as $rarityOption): ?>
+                                <option value="<?php echo $rarityOption; ?>" <?php echo ((isset($_POST['rarity']) && $_POST['rarity'] === $rarityOption) || (!isset($_POST['rarity']) && isset($editWeapon['rarity']) && $editWeapon['rarity'] === $rarityOption)) ? 'selected' : ''; ?>><?php echo $rarityOption; ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="field-row">
+                        <label for="type">Type</label>
+                        <select id="type" name="type" required>
+                            <option value="">Select a weapon type</option>
+                            <?php foreach ($weaponTypes as $typeOption): ?>
+                                <option value="<?php echo htmlspecialchars($typeOption['type_name']); ?>" <?php echo ((isset($_POST['type']) && $_POST['type'] === $typeOption['type_name']) || (!isset($_POST['type']) && isset($editWeapon['type']) && $editWeapon['type'] === $typeOption['type_name'])) ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($typeOption['type_name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="field-row">
+                        <label for="price">Price</label>
+                        <input id="price" name="price" type="number" min="0" value="<?php echo htmlspecialchars($_POST['price'] ?? ($editWeapon['price'] ?? '')); ?>" required>
+                    </div>
+
+                    <div class="field-row">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" rows="4" required><?php echo htmlspecialchars($_POST['description'] ?? ($editWeapon['description'] ?? '')); ?></textarea>
+                    </div>
+
+                    <div class="field-row">
+                        <label for="damage">Damage</label>
+                        <input id="damage" name="damage" type="text" value="<?php echo htmlspecialchars($_POST['damage'] ?? ($editWeapon['damage'] ?? '')); ?>" required>
+                    </div>
+
+                    <div class="field-row">
+                        <label for="accuracy">Accuracy</label>
+                        <input id="accuracy" name="accuracy" type="text" value="<?php echo htmlspecialchars($_POST['accuracy'] ?? ($editWeapon['accuracy'] ?? '')); ?>" required>
+                    </div>
+
+                    <div class="field-row">
+                        <label for="fire_rate">Fire Rate</label>
+                        <input id="fire_rate" name="fire_rate" type="text" value="<?php echo htmlspecialchars($_POST['fire_rate'] ?? ($editWeapon['fire_rate'] ?? '')); ?>" required>
+                    </div>
+
+                    <div class="weapon-actions">
+                        <button type="submit" class="btn-admin"><?php echo $editWeapon ? 'Update Weapon' : 'Add Weapon'; ?></button>
+                        <?php if ($editWeapon): ?>
+                            <a href="weapon.php" class="btn-secondary">Cancel</a>
+                        <?php endif; ?>
+                    </div>
+                </form>
+            </section>
+
+            <section class="weapon-table-card">
+                <h2>Weapon Inventory</h2>
+                <?php if (count($weapons) > 0): ?>
                     <table class="admin-table">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Weapon</th>
-                                <th>Type</th>
+                                <th>Name</th>
                                 <th>Rarity</th>
+                                <th>Type</th>
                                 <th>Price</th>
+                                <th>Damage</th>
+                                <th>Accuracy</th>
+                                <th>Fire Rate</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php if (empty($weapons)): ?>
+                            <?php foreach ($weapons as $weapon): ?>
                                 <tr>
-                                    <td colspan="6">No weapons found.</td>
-                                </tr>
-                            <?php else: ?>
-                                <?php foreach ($weapons as $weapon): ?>
-                                    <tr>
-                                        <td><?php echo htmlspecialchars($weapon['id']); ?></td>
-                                        <td><?php echo htmlspecialchars($weapon['gun']); ?></td>
-                                        <td><?php echo htmlspecialchars($weapon['type']); ?></td>
-                                        <td><?php echo htmlspecialchars($weapon['rarity']); ?></td>
-                                        <td>$<?php echo number_format($weapon['price']); ?></td>
-                                        <td class="table-actions">
-                                            <a class="btn-secondary" href="weapon.php?edit=<?php echo $weapon['id']; ?>">Edit</a>
-                                            <form action="weapon.php" method="POST" onsubmit="return confirm('Delete this weapon?');" class="inline-form">
-                                                <input type="hidden" name="weapon_id" value="<?php echo $weapon['id']; ?>">
-                                                <button type="submit" name="action" value="delete" class="btn-danger">Delete</button>
+                                    <td><?php echo htmlspecialchars($weapon['gun']); ?></td>
+                                    <td><?php echo htmlspecialchars($weapon['rarity']); ?></td>
+                                    <td><?php echo htmlspecialchars($weapon['type']); ?></td>
+                                    <td><?php echo htmlspecialchars(number_format($weapon['price'])); ?></td>
+                                    <td><?php echo htmlspecialchars($weapon['damage']); ?></td>
+                                    <td><?php echo htmlspecialchars($weapon['accuracy']); ?></td>
+                                    <td><?php echo htmlspecialchars($weapon['fire_rate']); ?></td>
+                                    <td>
+                                        <div class="table-actions">
+                                            <a class="btn-secondary" href="?edit_id=<?php echo htmlspecialchars($weapon['id']); ?>">Edit</a>
+                                            <form method="post" class="inline-form" onsubmit="return confirm('Delete this weapon?');">
+                                                <input type="hidden" name="action" value="delete_weapon">
+                                                <input type="hidden" name="weapon_id" value="<?php echo htmlspecialchars($weapon['id']); ?>">
+                                                <button type="submit" class="btn-danger">Delete</button>
                                             </form>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
                         </tbody>
                     </table>
-                </div>
-            </div>
-        </section>
+                <?php else: ?>
+                    <div class="empty-state">No weapon inventory is available yet.</div>
+                <?php endif; ?>
+            </section>
+        </div>
     </main>
 </body>
 
