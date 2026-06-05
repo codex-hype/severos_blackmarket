@@ -2,10 +2,8 @@
 include "../service/database.php";
 session_start();
 
-if (isset($_POST["logout"])) {
-    session_unset();
-    session_destroy();
-    header("Location: ../index.php");
+if (!isset($_SESSION["is_login"]) || $_SESSION["is_login"] !== true || $_SESSION["role"] !== 'guest') {
+    header("Location: ../login.php");
     exit();
 }
 
@@ -101,7 +99,7 @@ $rarityColors = [
 
 </head>
 
-<body>
+<body class="member-body">
     <?php include "../includes/header.php"; ?>
 
     <section id="backgrounds">
@@ -110,52 +108,71 @@ $rarityColors = [
                 <h1 id="header-h1">Marketplace</h1>
                 <p class="caption">Only the strongest survive. Choose your weapons enforce your dominance</p>
             </div>
-            <div id="search-container">
-                <input type="search" name="search" id="search" placeholder="Search weapons..">
-                <div class="divider divider-horizontal"></div>
-            </div>
-        </div>
+            <form action="marketplace.php" method="GET" class="market-search-form">
+                <input type="search" name="search" placeholder="Search weapons, type or rarity"
+                    value="<?= htmlspecialchars($search); ?>">
+                <select name="type">
+                    <option value="">All Weapon Types</option>
+                    <?php foreach ($types as $type): ?>
+                        <option value="<?= htmlspecialchars($type); ?>" <?= $selectedType === $type ? 'selected' : ''; ?>>
+                            <?= htmlspecialchars($type); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <select name="rarity">
+                    <option value="">All Rarities</option>
+                    <?php foreach ($rarities as $rarity): ?>
+                        <option value="<?= htmlspecialchars($rarity); ?>" <?= $selectedRarity === $rarity ? 'selected' : ''; ?>><?= htmlspecialchars($rarity); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <label for="max_price" class="range-label">Max price: $<span
+                        id="price-value"><?= number_format($selectedMaxPrice); ?></span></label>
+                <input type="range" name="max_price" id="max_price" min="<?= $minPrice; ?>" max="<?= $maxPrice; ?>"
+                    value="<?= $selectedMaxPrice; ?>">
+                <button type="submit" class="btn-primary">Apply filters</button>
+            </form>
+    </section>
 
-        <form action="marketplace.php" method="post" id="purchase-form">
-            <input type="hidden" name="selected_gun" id="selected-gun-input">
-            <input type="hidden" name="confirm_purchase" value="1">
+    <form action="marketplace.php" method="post" id="purchase-form">
+        <input type="hidden" name="selected_gun" id="selected-gun-input">
+        <input type="hidden" name="confirm_purchase" value="1">
 
-            <div class="containercard">
-                <?php foreach ($array as $item):
-                    $color = $rarityColors[$item['rarity']] ?? '#fff';
-                    ?>
-                    <div class="carditem" data-source="marketplace" data-gun="<?= htmlspecialchars($item['gun']) ?>"
-                        data-rarity="<?= htmlspecialchars($item['rarity']) ?>"
-                        data-type="<?= htmlspecialchars($item['type']) ?>" data-price="<?= $item['price'] ?>"
-                        data-color="<?= $color ?>">
-                        <div>
-                            <input id="lol" style="background:none; border:none;  color: <?= $color ?>" name="gun_name"
-                                value="<?= htmlspecialchars($item['gun']) ?> " readonly>
-                            <input id="lol" style="background:none; border:none;  color: <?= $color ?>" name="type"
-                                value="<?= htmlspecialchars($item['type']) ?>" readonly>
-                            <input id="lol" style="background:none; border:none;  color: <?= $color ?>" name="rarity"
-                                value="<?= htmlspecialchars($item['rarity']) ?>" readonly>
-                            <input id="lol" style="color:#9a9a9a; background:none; border:none;" name="price"
-                                value="Type: <?= htmlspecialchars($item['type']) ?>" readonly>
-                            <input id="lol" style="color:#9a9a9a; background:none; border:none;" name="color"
-                                value="Price: $<?= number_format($item['price']) ?>" readonly>
-                        </div>
+        <div class="containercard">
+            <?php foreach ($array as $item):
+                $color = $rarityColors[$item['rarity']] ?? '#fff';
+                ?>
+                <div class="carditem" data-source="marketplace" data-gun="<?= htmlspecialchars($item['gun']) ?>"
+                    data-rarity="<?= htmlspecialchars($item['rarity']) ?>"
+                    data-type="<?= htmlspecialchars($item['type']) ?>" data-price="<?= $item['price'] ?>"
+                    data-color="<?= $color ?>">
+                    <div>
+                        <input id="lol" style="background:none; border:none;  color: <?= $color ?>" name="gun_name"
+                            value="<?= htmlspecialchars($item['gun']) ?> " readonly>
+                        <input id="lol" style="background:none; border:none;  color: <?= $color ?>" name="type"
+                            value="<?= htmlspecialchars($item['type']) ?>" readonly>
+                        <input id="lol" style="background:none; border:none;  color: <?= $color ?>" name="rarity"
+                            value="<?= htmlspecialchars($item['rarity']) ?>" readonly>
+                        <input id="lol" style="color:#9a9a9a; background:none; border:none;" name="price"
+                            value="Type: <?= htmlspecialchars($item['type']) ?>" readonly>
+                        <input id="lol" style="color:#9a9a9a; background:none; border:none;" name="color"
+                            value="Price: $<?= number_format($item['price']) ?>" readonly>
                     </div>
-                <?php endforeach; ?>
-            </div>
-        </form>
-
-        <div class="filtercontainer">
-            <h1>Filters</h1>
-            <span id="important-msg">Price Range</span>
-            <input type="range" name="range" id="range">
-            <p class="caption">Weapon Type</p>
-            <?php foreach ($array as $item): ?>
-                <div>
-                    <input type="checkbox" class="checkbox-filter"> <?= htmlspecialchars($item['gun']) ?>
                 </div>
             <?php endforeach; ?>
         </div>
+    </form>
+
+    <div class="filtercontainer">
+        <h1>Filters</h1>
+        <span id="important-msg">Price Range</span>
+        <input type="range" name="range" id="range">
+        <p class="caption">Weapon Type</p>
+        <?php foreach ($array as $item): ?>
+            <div>
+                <input type="checkbox" class="checkbox-filter"> <?= htmlspecialchars($item['gun']) ?>
+            </div>
+        <?php endforeach; ?>
+    </div>
     </section>
 
     <?php include "../includes/footer.php"; ?>

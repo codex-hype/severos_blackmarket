@@ -1,12 +1,24 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+    $cookieParams = session_get_cookie_params();
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => $cookieParams['path'] ?: '/',
+        'domain' => $cookieParams['domain'],
+        'secure' => $secure,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    session_start();
+}
 
 session_start();
 
 if (isset($_POST["index"])) {
     session_unset();
     session_destroy();
-    header("Location: ../index.php");
-    exit();
+    session_start();
 }
 
 if (isset($_POST["login"])) {
@@ -61,24 +73,52 @@ if (isset($_SESSION["is_login"])) {
 
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
+<header class="site-header">
+    <div class="site-brand">
+        <a href="<?php echo htmlspecialchars($homeLink); ?>">Severos</a>
+    </div>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Header</title>
-    <link rel="stylesheet" href="../assets/style.css">
-</head>
+    <nav class="site-navigation" aria-label="Main navigation">
+        <?php if ($loggedIn && $role === 'guest'): ?>
+        <a href="<?php echo htmlspecialchars($homeLink); ?>">Home</a>
+        <a href="<?php echo htmlspecialchars($marketplaceLink); ?>">Marketplace</a>
+        <a href="<?php echo htmlspecialchars($arsenalLink); ?>">Arsenal</a>
+        <a href="<?php echo htmlspecialchars($transactionLink); ?>">Transaction</a>
+        <?php elseif ($loggedIn && $role === 'admin'): ?>
+        <a href="<?php echo htmlspecialchars($dashboardLink); ?>">Dashboard</a>
+        <a href="<?php echo htmlspecialchars($weaponLink); ?>">Weapons</a>
+        <a href="<?php echo htmlspecialchars($paymentLink); ?>">Payments</a>
+        <a href="<?php echo htmlspecialchars($weaponTypeLink); ?>">Weapon Types</a>
+        <?php endif; ?>
+    </nav>
 
-<body>
-    <header>
+    <div class="site-actions">
+        <?php if ($loggedIn): ?>
+        <span class="user-label"><?php echo $username; ?></span>
+        <form action="" method="post" class="logout-form">
+            <button type="submit" name="logout">Logout</button>
+        </form>
+        <?php else: ?>
+        <a href="<?php echo htmlspecialchars($loginLink); ?>">Login</a>
+        <a href="<?php echo htmlspecialchars($registerLink); ?>">Register</a>
+        <?php endif; ?>
+    </div>
+</header>
 
+<?php if ($loggedIn): ?>
+<script>
+const severosActive = sessionStorage.getItem('severos_active');
+const urlParams = new URLSearchParams(window.location.search);
+const initSession = urlParams.get('init') === '1';
 
-        <h1 style="font-size: 1.5rem; font-weight: bold; color: #fff;" id="geader">Severos</h1>
+<
+h1 style = "font-size: 1.5rem; font-weight: bold; color: #fff;"
+id = "geader" > Severos < /h1>
 
-        <ul aria-label="Auth Navigation" id="authen">
-            <?php
+    <
+    ul aria - label = "Auth Navigation"
+id = "authen" >
+    <?php
             if (isset($_SESSION["is_login"])) {
                 echo '
                  <form action="" method="post">
@@ -111,12 +151,16 @@ if (isset($_SESSION["is_login"])) {
                 echo '<div class="divider"></div>';
                 echo '<li name="register" id="register-page"><a href="register.php">Register</a></li>';
             }
-            ?>
-        </ul>
+            ?> <
+    /ul>
 
-    </header>
+    <
+    /header>
 
-    <script src="assets/script.js"></script>
+
+    <
+    script src = "assets/script.js" >
+</script>
 </body>
 
 </html>

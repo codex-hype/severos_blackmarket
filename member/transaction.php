@@ -362,6 +362,54 @@ $transactions = mysqli_query(
 
     <?php include "../includes/footer.php"; ?>
 
+    <main class="member-shell">
+        <section class="member-page-intro">
+            <h1>Transaction History</h1>
+            <p class="member-lead">Review your recent purchases and payment status in one place.</p>
+            <?php if ($purchaseSuccess): ?>
+                <div class="success-banner">Purchase completed successfully. Your transaction is now recorded.</div>
+            <?php endif; ?>
+            <?php if ($clearSuccess): ?>
+                <div class="success-banner">Transaction history cleared successfully.</div>
+            <?php endif; ?>
+        </section>
+
+        <section class="transaction-table">
+            <?php if (count($transactions) > 0): ?>
+                <form method="POST" class="clear-history-form">
+                    <button type="submit" name="clear_history" class="btn-secondary">Clear History</button>
+                </form>
+            <?php endif; ?>
+            <?php if (count($transactions) === 0): ?>
+                <div class="empty-state">
+                    <p>You have no transaction history yet. Your purchases will appear here once completed.</p>
+                </div>
+            <?php else: ?>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Item</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($transactions as $tx): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($tx['date']); ?></td>
+                                <td><?php echo htmlspecialchars($tx['item']); ?></td>
+                                <td>$<?php echo number_format($tx['amount']); ?></td>
+                                <td><?php echo htmlspecialchars($tx['status']); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
+        </section>
+    </main>
+
+    <?php include "../includes/footer.php"; ?>
 </body>
 
 </html>

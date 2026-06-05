@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $countRow = $countResult ? $countResult->fetch_assoc() : null;
                         $checkStmt->close();
 
-                        if ($countRow && (int) $countRow['count'] > 0) {
+                        if ($countRow && (int)$countRow['count'] > 0) {
                             $errors[] = 'This weapon type is in use by existing weapons and cannot be deleted.';
                         } else {
                             $deleteStmt = $db->prepare("DELETE FROM weapon_types WHERE id = ?");
@@ -174,8 +174,7 @@ if ($result) {
             <ul>
                 <?php foreach ($adminNavItems as $file => $label): ?>
                     <li>
-                        <a href="<?php echo htmlspecialchars($file); ?>"
-                            class="admin-nav-link <?php echo $currentPage === $file ? 'active' : ''; ?>">
+                        <a href="<?php echo htmlspecialchars($file); ?>" class="admin-nav-link <?php echo $currentPage === $file ? 'active' : ''; ?>">
                             <?php echo htmlspecialchars($label); ?>
                         </a>
                     </li>
@@ -200,14 +199,11 @@ if ($result) {
 
                     <div class="field-row">
                         <label for="type_name">Type Name</label>
-                        <input id="type_name" name="type_name" type="text"
-                            value="<?php echo htmlspecialchars($_POST['type_name'] ?? ($editType['type_name'] ?? '')); ?>"
-                            required>
+                        <input id="type_name" name="type_name" type="text" value="<?php echo htmlspecialchars($_POST['type_name'] ?? ($editType['type_name'] ?? '')); ?>" required>
                     </div>
 
                     <div class="weapon-actions">
-                        <button type="submit"
-                            class="btn-admin"><?php echo $editType ? 'Update Type' : 'Create Type'; ?></button>
+                        <button type="submit" class="btn-admin"><?php echo $editType ? 'Update Type' : 'Create Type'; ?></button>
                         <?php if ($editType): ?>
                             <a href="weapontype.php" class="btn-secondary">Cancel</a>
                         <?php endif; ?>
@@ -234,13 +230,10 @@ if ($result) {
                                     <td><?php echo htmlspecialchars($type['weapon_count']); ?></td>
                                     <td>
                                         <div class="table-actions">
-                                            <a class="btn-secondary"
-                                                href="?edit_id=<?php echo htmlspecialchars($type['id']); ?>">Edit</a>
-                                            <form method="post" class="inline-form"
-                                                onsubmit="return confirm('Delete this weapon type?');">
+                                            <a class="btn-secondary" href="?edit_id=<?php echo htmlspecialchars($type['id']); ?>">Edit</a>
+                                            <form method="post" class="inline-form" onsubmit="return confirm('Delete this weapon type?');">
                                                 <input type="hidden" name="action" value="delete_type">
-                                                <input type="hidden" name="type_id"
-                                                    value="<?php echo htmlspecialchars($type['id']); ?>">
+                                                <input type="hidden" name="type_id" value="<?php echo htmlspecialchars($type['id']); ?>">
                                                 <button type="submit" class="btn-danger">Delete</button>
                                             </form>
                                         </div>
