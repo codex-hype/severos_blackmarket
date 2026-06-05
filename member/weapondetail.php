@@ -9,7 +9,7 @@ $source = $_SESSION['weapon_source'] ?? 'marketplace';
 
 if (isset($_POST["back"])) {
 
-    if ($source == "arsenal") {
+    if (($source ?? '') === "arsenal") {
         header("Location: arsenal.php");
     } else {
         header("Location: marketplace.php");
@@ -17,6 +17,13 @@ if (isset($_POST["back"])) {
 
     exit();
 }
+
+
+if (isset($_POST["transaction"])) {
+
+
+}
+
 if (isset($_POST["logout"])) {
     session_unset();
     session_destroy();
@@ -261,6 +268,8 @@ $display_price = number_format((float) $w_price, 2);
 
                     <form action="transaction.php" method="POST">
 
+                        <input type="hidden" name="transaction_type" value="purchase">
+
                         <input type="hidden" name="gun_name" value="<?= htmlspecialchars($w_name) ?>">
 
                         <input type="hidden" name="gun_price" value="<?= $w_price ?>">
@@ -274,29 +283,52 @@ $display_price = number_format((float) $w_price, 2);
                 <?php else: ?>
 
                     <?php
-                    $sell_price = $w_price * 0.5;
+                    $sellPrice = $w_price * 0.5;
                     ?>
 
                     <div style="margin-top:20px;">
 
-                        <div class="stat-row">
-                            <span class="label">Amount:</span>
-                            <span class="value">1</span>
+                        <div class="section-title">
+                            Sell Weapon
                         </div>
 
                         <form action="transaction.php" method="POST">
 
+                            <input type="hidden" name="transaction_type" value="sell">
+
                             <input type="hidden" name="gun_name" value="<?= htmlspecialchars($w_name) ?>">
 
-                            <button class="btn-purchase" style="background:#ff4d4d">
+                            <input type="hidden" name="gun_price" value="<?= $w_price ?>">
+
+                            <button type="submit" name="amount" value="1"
+                                style="cursor:pointer;color:#fff;background:#d62929;border:none;padding:10px;margin-right:5px;">
                                 Sell 1
                                 <br>
-                                +$<?= number_format($sell_price, 2) ?>
+                                +$<?= number_format($sellPrice, 2) ?>
+                            </button>
+
+                            <button type="submit" name="amount" value="5"
+                                style="cursor:pointer;color:#fff;background:#d62929;border:none;padding:10px;margin-right:5px;">
+                                Sell 5
+                                <br>
+                                +$<?= number_format($sellPrice * 5, 2) ?>
+                            </button>
+
+                            <button type="submit" name="amount" value="10"
+                                style="cursor:pointer;color:#fff;background:#d62929;border:none;padding:10px;margin-right:5px;">
+                                Sell 10
+                                <br>
+                                +$<?= number_format($sellPrice * 10, 2) ?>
+                            </button>
+
+                            <button type="submit" name="amount" value="all"
+                                style="cursor:pointer;color:#fff;background:#d62929;border:none;padding:10px;">
+                                Sell All
                             </button>
 
                         </form>
 
-                        <p style="margin-top:40px;font-size:13px;color:#ccc;">
+                        <p style="font-size:13px;color:#ccc;margin-top:15px;">
                             *You will receive 50% of the weapon's price upon selling.
                         </p>
 
