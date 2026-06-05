@@ -1,5 +1,4 @@
 <?php
-<<<<<<< HEAD
 include "../service/database.php";
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -139,21 +138,6 @@ $result = $db->query("SELECT * FROM weapons ORDER BY created_at DESC");
 if ($result) {
     while ($row = $result->fetch_assoc()) {
         $weapons[] = $row;
-=======
-include "admin_auth.php";
-
-$weaponTable = findTable($db, ["weapon", "weapons", "msweapon"]);
-$weaponRows = null;
-$weaponColumns = [];
-
-if ($weaponTable) {
-    $weaponRows = fetchTableRows($db, $weaponTable, 200);
-    if ($weaponRows) {
-        $weaponColumns = array_map(function ($field) {
-            return $field->name;
-        }, $weaponRows->fetch_fields());
-        $weaponRows->data_seek(0);
->>>>>>> 479298e81e2e7d3f4e5172aa6293f69da2e96c07
     }
 }
 ?>
@@ -168,7 +152,6 @@ if ($weaponTable) {
     <link rel="stylesheet" href="../assets/style.css">
 </head>
 
-<<<<<<< HEAD
 <body class="admin-body">
     <?php include "../includes/header.php"; ?>
 
@@ -177,7 +160,8 @@ if ($weaponTable) {
             <div class="admin-hero-copy">
                 <p class="admin-badge">Administrator Panel</p>
                 <h1>Weapons</h1>
-                <p class="admin-lead">Add, update, or remove weapons from the inventory with a single administrator interface.</p>
+                <p class="admin-lead">Add, update, or remove weapons from the inventory with a single administrator
+                    interface.</p>
             </div>
             <div class="admin-hero-actions">
                 <a href="dashboard.php" class="btn-secondary">Dashboard</a>
@@ -198,40 +182,46 @@ if ($weaponTable) {
         <nav class="admin-nav" aria-label="Admin navigation">
             <ul>
                 <?php foreach ($adminNavItems as $file => $label): ?>
-                    <li>
-                        <a href="<?php echo htmlspecialchars($file); ?>" class="admin-nav-link <?php echo $currentPage === $file ? 'active' : ''; ?>">
-                            <?php echo htmlspecialchars($label); ?>
-                        </a>
-                    </li>
+                <li>
+                    <a href="<?php echo htmlspecialchars($file); ?>"
+                        class="admin-nav-link <?php echo $currentPage === $file ? 'active' : ''; ?>">
+                        <?php echo htmlspecialchars($label); ?>
+                    </a>
+                </li>
                 <?php endforeach; ?>
             </ul>
         </nav>
 
         <?php if (!empty($errors)): ?>
-            <div class="error-banner"><?php echo htmlspecialchars(implode(' ', $errors)); ?></div>
+        <div class="error-banner"><?php echo htmlspecialchars(implode(' ', $errors)); ?></div>
         <?php elseif ($message): ?>
-            <div class="success-banner"><?php echo htmlspecialchars($message); ?></div>
+        <div class="success-banner"><?php echo htmlspecialchars($message); ?></div>
         <?php endif; ?>
 
         <div class="weapon-management-grid">
             <section class="weapon-form-card">
                 <h2><?php echo $editWeapon ? 'Edit Weapon' : 'Add New Weapon'; ?></h2>
                 <form method="post">
-                    <input type="hidden" name="action" value="<?php echo $editWeapon ? 'update_weapon' : 'add_weapon'; ?>">
+                    <input type="hidden" name="action"
+                        value="<?php echo $editWeapon ? 'update_weapon' : 'add_weapon'; ?>">
                     <?php if ($editWeapon): ?>
-                        <input type="hidden" name="weapon_id" value="<?php echo htmlspecialchars($editWeapon['id']); ?>">
+                    <input type="hidden" name="weapon_id" value="<?php echo htmlspecialchars($editWeapon['id']); ?>">
                     <?php endif; ?>
 
                     <div class="field-row">
                         <label for="gun">Weapon Name</label>
-                        <input id="gun" name="gun" type="text" value="<?php echo htmlspecialchars($_POST['gun'] ?? ($editWeapon['gun'] ?? '')); ?>" required>
+                        <input id="gun" name="gun" type="text"
+                            value="<?php echo htmlspecialchars($_POST['gun'] ?? ($editWeapon['gun'] ?? '')); ?>"
+                            required>
                     </div>
 
                     <div class="field-row">
                         <label for="rarity">Rarity</label>
                         <select id="rarity" name="rarity" required>
                             <?php foreach (['Common','Rare','Epic','Legendary'] as $rarityOption): ?>
-                                <option value="<?php echo $rarityOption; ?>" <?php echo ((isset($_POST['rarity']) && $_POST['rarity'] === $rarityOption) || (!isset($_POST['rarity']) && isset($editWeapon['rarity']) && $editWeapon['rarity'] === $rarityOption)) ? 'selected' : ''; ?>><?php echo $rarityOption; ?></option>
+                            <option value="<?php echo $rarityOption; ?>"
+                                <?php echo ((isset($_POST['rarity']) && $_POST['rarity'] === $rarityOption) || (!isset($_POST['rarity']) && isset($editWeapon['rarity']) && $editWeapon['rarity'] === $rarityOption)) ? 'selected' : ''; ?>>
+                                <?php echo $rarityOption; ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -241,42 +231,53 @@ if ($weaponTable) {
                         <select id="type" name="type" required>
                             <option value="">Select a weapon type</option>
                             <?php foreach ($weaponTypes as $typeOption): ?>
-                                <option value="<?php echo htmlspecialchars($typeOption['type_name']); ?>" <?php echo ((isset($_POST['type']) && $_POST['type'] === $typeOption['type_name']) || (!isset($_POST['type']) && isset($editWeapon['type']) && $editWeapon['type'] === $typeOption['type_name'])) ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($typeOption['type_name']); ?>
-                                </option>
+                            <option value="<?php echo htmlspecialchars($typeOption['type_name']); ?>"
+                                <?php echo ((isset($_POST['type']) && $_POST['type'] === $typeOption['type_name']) || (!isset($_POST['type']) && isset($editWeapon['type']) && $editWeapon['type'] === $typeOption['type_name'])) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($typeOption['type_name']); ?>
+                            </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
 
                     <div class="field-row">
                         <label for="price">Price</label>
-                        <input id="price" name="price" type="number" min="0" value="<?php echo htmlspecialchars($_POST['price'] ?? ($editWeapon['price'] ?? '')); ?>" required>
+                        <input id="price" name="price" type="number" min="0"
+                            value="<?php echo htmlspecialchars($_POST['price'] ?? ($editWeapon['price'] ?? '')); ?>"
+                            required>
                     </div>
 
                     <div class="field-row">
                         <label for="description">Description</label>
-                        <textarea id="description" name="description" rows="4" required><?php echo htmlspecialchars($_POST['description'] ?? ($editWeapon['description'] ?? '')); ?></textarea>
+                        <textarea id="description" name="description" rows="4"
+                            required><?php echo htmlspecialchars($_POST['description'] ?? ($editWeapon['description'] ?? '')); ?></textarea>
                     </div>
 
                     <div class="field-row">
                         <label for="damage">Damage</label>
-                        <input id="damage" name="damage" type="text" value="<?php echo htmlspecialchars($_POST['damage'] ?? ($editWeapon['damage'] ?? '')); ?>" required>
+                        <input id="damage" name="damage" type="text"
+                            value="<?php echo htmlspecialchars($_POST['damage'] ?? ($editWeapon['damage'] ?? '')); ?>"
+                            required>
                     </div>
 
                     <div class="field-row">
                         <label for="accuracy">Accuracy</label>
-                        <input id="accuracy" name="accuracy" type="text" value="<?php echo htmlspecialchars($_POST['accuracy'] ?? ($editWeapon['accuracy'] ?? '')); ?>" required>
+                        <input id="accuracy" name="accuracy" type="text"
+                            value="<?php echo htmlspecialchars($_POST['accuracy'] ?? ($editWeapon['accuracy'] ?? '')); ?>"
+                            required>
                     </div>
 
                     <div class="field-row">
                         <label for="fire_rate">Fire Rate</label>
-                        <input id="fire_rate" name="fire_rate" type="text" value="<?php echo htmlspecialchars($_POST['fire_rate'] ?? ($editWeapon['fire_rate'] ?? '')); ?>" required>
+                        <input id="fire_rate" name="fire_rate" type="text"
+                            value="<?php echo htmlspecialchars($_POST['fire_rate'] ?? ($editWeapon['fire_rate'] ?? '')); ?>"
+                            required>
                     </div>
 
                     <div class="weapon-actions">
-                        <button type="submit" class="btn-admin"><?php echo $editWeapon ? 'Update Weapon' : 'Add Weapon'; ?></button>
+                        <button type="submit"
+                            class="btn-admin"><?php echo $editWeapon ? 'Update Weapon' : 'Add Weapon'; ?></button>
                         <?php if ($editWeapon): ?>
-                            <a href="weapon.php" class="btn-secondary">Cancel</a>
+                        <a href="weapon.php" class="btn-secondary">Cancel</a>
                         <?php endif; ?>
                     </div>
                 </form>
@@ -285,45 +286,48 @@ if ($weaponTable) {
             <section class="weapon-table-card">
                 <h2>Weapon Inventory</h2>
                 <?php if (count($weapons) > 0): ?>
-                    <table class="admin-table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Rarity</th>
-                                <th>Type</th>
-                                <th>Price</th>
-                                <th>Damage</th>
-                                <th>Accuracy</th>
-                                <th>Fire Rate</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($weapons as $weapon): ?>
-                                <tr>
-                                    <td><?php echo htmlspecialchars($weapon['gun']); ?></td>
-                                    <td><?php echo htmlspecialchars($weapon['rarity']); ?></td>
-                                    <td><?php echo htmlspecialchars($weapon['type']); ?></td>
-                                    <td><?php echo htmlspecialchars(number_format($weapon['price'])); ?></td>
-                                    <td><?php echo htmlspecialchars($weapon['damage']); ?></td>
-                                    <td><?php echo htmlspecialchars($weapon['accuracy']); ?></td>
-                                    <td><?php echo htmlspecialchars($weapon['fire_rate']); ?></td>
-                                    <td>
-                                        <div class="table-actions">
-                                            <a class="btn-secondary" href="?edit_id=<?php echo htmlspecialchars($weapon['id']); ?>">Edit</a>
-                                            <form method="post" class="inline-form" onsubmit="return confirm('Delete this weapon?');">
-                                                <input type="hidden" name="action" value="delete_weapon">
-                                                <input type="hidden" name="weapon_id" value="<?php echo htmlspecialchars($weapon['id']); ?>">
-                                                <button type="submit" class="btn-danger">Delete</button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Rarity</th>
+                            <th>Type</th>
+                            <th>Price</th>
+                            <th>Damage</th>
+                            <th>Accuracy</th>
+                            <th>Fire Rate</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($weapons as $weapon): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($weapon['gun']); ?></td>
+                            <td><?php echo htmlspecialchars($weapon['rarity']); ?></td>
+                            <td><?php echo htmlspecialchars($weapon['type']); ?></td>
+                            <td><?php echo htmlspecialchars(number_format($weapon['price'])); ?></td>
+                            <td><?php echo htmlspecialchars($weapon['damage']); ?></td>
+                            <td><?php echo htmlspecialchars($weapon['accuracy']); ?></td>
+                            <td><?php echo htmlspecialchars($weapon['fire_rate']); ?></td>
+                            <td>
+                                <div class="table-actions">
+                                    <a class="btn-secondary"
+                                        href="?edit_id=<?php echo htmlspecialchars($weapon['id']); ?>">Edit</a>
+                                    <form method="post" class="inline-form"
+                                        onsubmit="return confirm('Delete this weapon?');">
+                                        <input type="hidden" name="action" value="delete_weapon">
+                                        <input type="hidden" name="weapon_id"
+                                            value="<?php echo htmlspecialchars($weapon['id']); ?>">
+                                        <button type="submit" class="btn-danger">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
                 <?php else: ?>
-                    <div class="empty-state">No weapon inventory is available yet.</div>
+                <div class="empty-state">No weapon inventory is available yet.</div>
                 <?php endif; ?>
             </section>
         </div>
@@ -331,43 +335,3 @@ if ($weaponTable) {
 </body>
 
 </html>
-=======
-<body>
-    <section class="admin-container">
-        <?php include "admin_nav.php"; ?>
-        <div class="admin-header">
-            <h1>Weapon Inventory</h1>
-            <p>View and manage the weapons available in the marketplace.</p>
-        </div>
-
-        <?php if ($weaponTable && $weaponRows && $weaponRows->num_rows > 0): ?>
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <?php foreach ($weaponColumns as $column): ?>
-                                <th><?php echo htmlspecialchars($column, ENT_QUOTES, 'UTF-8'); ?></th>
-                            <?php endforeach; ?>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php while ($row = $weaponRows->fetch_assoc()): ?>
-                            <tr>
-                                <?php foreach ($row as $value): ?>
-                                    <td><?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?></td>
-                                <?php endforeach; ?>
-                            </tr>
-                        <?php endwhile; ?>
-                    </tbody>
-                </table>
-            </div>
-        <?php else: ?>
-            <div class="admin-panel">
-                <p>No weapon records found. Make sure the weapons table exists in the database.</p>
-            </div>
-        <?php endif; ?>
-    </section>
-</body>
-
-</html>
->>>>>>> 479298e81e2e7d3f4e5172aa6293f69da2e96c07
