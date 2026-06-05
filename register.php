@@ -18,8 +18,8 @@ if (isset($_POST["register"])) {
         if (strlen($password) < 8) {
             $errors['password'] = 'Password minimal 8 karakter.';
         }
-        if (!preg_match('/^[^@]+@gmail\.com$/', $email)) {
-            $errors['email'] = 'Email harus menggunakan @gmail.com.';
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors['email'] = 'Email tidak valid.';
         }
     }
 
@@ -29,12 +29,27 @@ if (isset($_POST["register"])) {
         $credit = 200;
         $role = "guest";
 
+        $sql = "INSERT INTO msuser (username, password, email, credit, role) VALUES (?, ?, ?, ?, ?)";
+        $stmt = $db->prepare($sql);
 
+        if (!$stmt) {
+            $errors['general'] = 'Database error. Please try again later.';
+        } else {
+            $stmt->bind_param("sssis", $username, $hpassword, $email, $credit, $role);
+            if ($stmt->execute()) {
+                $stmt->close();
+                $db->close();
+                header("Location: login.php");
+                exit();
+            }
 
-        $sql = "INSERT INTO msuser (username, password, email, credit, role) VALUES ('$username', '$hpassword', '$email', '$credit', '$role')";
-        if ($db->query($sql)) {
-            header("Location: login.php");
-            exit();
+            if ($stmt->errno === 1062) {
+                $errors['email'] = 'Email sudah terdaftar.';
+            } else {
+                $errors['general'] = 'Database error: ' . $stmt->error;
+            }
+
+            $stmt->close();
         }
     }
     $db->close();
@@ -66,23 +81,46 @@ if (isset($_POST["register"])) {
                 <p class="highlighter">
                     Create your account by filling in the information below.
                 </p>
+                <?php if (!empty($errors['general']) || !empty($errors[0])): ?>
+                    <div style="background:#ffe0e0; border:1px solid red; border-radius:6px;
+                                padding:10px 14px; margin-bottom:14px;">
+                        <strong style="color:red; font-size:13px;">
+                            <?php echo htmlspecialchars($errors['general'] ?? $errors[0]); ?>
+                        </strong>
+                    </div>
+                <?php endif; ?>
                 <div class="form-group">
                     <label for="username">Username</label>
                     <input type="text" id="username" name="username"
-                        placeholder="Enter your username(min. 8 characters)" />
-
+                        placeholder="Enter your username(min. 8 characters)"
+                        value="<?php echo htmlspecialchars($_POST['username'] ?? ''); ?>" />
+                    <?php if (!empty($errors['username'])): ?>
+                        <strong style="margin-top:6px; color:red; font-size:12px; font-style:italic; display:block;">
+                            <?php echo htmlspecialchars($errors['username']); ?>
+                        </strong>
+                    <?php endif; ?>
                 </div>
 
                 <div class="form-group">
                     <label for="email">Email</label>
-                    <input type="email" id="email" name="email" placeholder="Enter your email( ..@gmail.com)" />
-
+                    <input type="email" id="email" name="email" placeholder="Enter your email( ..@gmail.com)"
+                        value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" />
+                    <?php if (!empty($errors['email'])): ?>
+                        <strong style="margin-top:6px; color:red; font-size:12px; font-style:italic; display:block;">
+                            <?php echo htmlspecialchars($errors['email']); ?>
+                        </strong>
+                    <?php endif; ?>
                 </div>
 
                 <div class="form-group">
                     <label for="password">Password</label>
                     <input type="password" id="password" name="password"
                         placeholder="Enter your password(min. 8 characters)" />
+                    <?php if (!empty($errors['password'])): ?>
+                        <strong style="margin-top:6px; color:red; font-size:12px; font-style:italic; display:block;">
+                            <?php echo htmlspecialchars($errors['password']); ?>
+                        </strong>
+                    <?php endif; ?>
                 </div>
 
                 <button type="submit" class="btn-register" name="register">Register</button>
@@ -92,11 +130,7 @@ if (isset($_POST["register"])) {
         </div>
     </section>
 
+    <?php include "includes/footer.php"; ?>
 </body>
 
 </html>
-
-
-<?php
-include "includes/footer.php";
-?>
