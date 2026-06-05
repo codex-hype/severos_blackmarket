@@ -1,5 +1,6 @@
 <?php
 
+session_start();
 
 if (isset($_POST["index"])) {
     session_unset();
@@ -8,19 +9,19 @@ if (isset($_POST["index"])) {
     exit();
 }
 
-
 if (isset($_POST["login"])) {
-    session_unset();
-    session_destroy();
-    header("location: login.php");
+    header("Location: login.php");
     exit();
 }
 
 
 if (isset($_POST["register"])) {
-    session_unset();
-    session_destroy();
     header("location: register.php");
+    exit();
+}
+
+if (isset($_POST["marketplace"])) {
+    header("location: marketplace.php");
     exit();
 }
 
@@ -34,19 +35,20 @@ if (isset($_POST["home"])) {
 }
 
 if (isset($_POST["transaction"])) {
+
     header("location: transaction.php");
     exit();
 }
 
 if (isset($_POST["arsenal"])) {
-    session_unset();
-    session_destroy();
+
     header("location: arsenal.php");
     exit();
 }
 
 $username = "";
-if (isset($_SESSION["is_login"]) == true) {
+
+if (isset($_SESSION["is_login"])) {
     $stmt = $db->prepare("SELECT * FROM msuser WHERE email = ?");
     $stmt->bind_param("s", $_SESSION["email"]);
     $stmt->execute();
@@ -104,6 +106,7 @@ if (isset($_SESSION["is_login"]) == true) {
                     <button id="logout-btn" style="background: none; color: #434343; border: none; padding: none; cursor: pointer;" type="submit" name="index">Logout</button>
                 </form>';
             } else {
+
                 echo '<li name="login" id="login-page"><a href="login.php">Login</a></li>';
                 echo '<div class="divider"></div>';
                 echo '<li name="register" id="register-page"><a href="register.php">Register</a></li>';

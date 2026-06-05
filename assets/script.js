@@ -5,6 +5,43 @@ const rarityColors = {
     "Legendary": "#f0a500",
 };
 
+document.addEventListener('DOMContentLoaded', function (e) {
+    // Memastikan inisialisasi awal berjalan tanpa mencegah default global yang merusak form
+    const slider = document.querySelector('.slider');
+
+    if (slider) {
+        let slideIndex = 0;
+        const slides = slider.querySelectorAll('img');
+        const totalSlides = slides.length;
+
+        setInterval(() => {
+            slideIndex++;
+            if (slideIndex >= totalSlides) {
+                slideIndex = 0;
+            }
+
+            const slideWidth = slider.clientWidth;
+            slider.scrollTo({
+                left: slideIndex * slideWidth,
+                behavior: 'smooth'
+            });
+        }, 2000);
+    }
+
+    // Menghubungkan fungsi filter ke tombol Apply
+    const applyFiltersBtn = document.getElementById('apply-filters-btn');
+    if (applyFiltersBtn) {
+        applyFiltersBtn.addEventListener('click', applyAllFilters);
+    }
+
+    // Menghubungkan fungsi filter ke kolom pencarian (opsional untuk live search)
+    const searchInput = document.getElementById('search');
+    if (searchInput) {
+        searchInput.addEventListener('input', applyAllFilters);
+    }
+});
+
+// Efek Hover & Detail Modal Klik Card Item
 document.querySelectorAll('.carditem').forEach(function (carditem) {
     const rarity = carditem.dataset.rarity;
     const color = rarityColors[rarity] || "#fff";
@@ -32,24 +69,23 @@ document.querySelectorAll('.carditem').forEach(function (carditem) {
         confirmPurchase.innerHTML = `
             <div id="black-background">
                 <div class="confirm-purchase">
-                    <h1 id="confirm-title">Are you sure you want to purchase?</h1>
+                    <h1 id="confirm-title">Look details before buying?</h1> 
                     <span><h1 id="gun-name" style="color: ${color}">${gun}</h1></span>
                     <span id="confirm-text">for price</span>
                     <span id="gun-price">$${price.toLocaleString()}</span>
-                    <div class="confirm-btns">
-                        <button id="cancel-btn">Cancel</button>
-                        <button id="confirm-btn">Confirm</button>
-                    </div>
+                    
+                    <form method="POST" action="weapondetail.php" style="margin-top: 20px;">
+                        <input type="hidden" name="gun_name" value="${gun}">
+                        <div class="confirm-btns">
+                            <button type="button" id="cancel-btn">Cancel</button>
+                            <button type="submit" id="confirm-btn">Confirm</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         `;
 
         document.body.appendChild(confirmPurchase);
-
-        confirmPurchase.querySelector('#confirm-btn').addEventListener('click', function (e) {
-            e.preventDefault();
-            window.location.href = 'transaction.php';
-        });
 
         confirmPurchase.querySelector('#cancel-btn').addEventListener('click', function (e) {
             e.preventDefault();
@@ -58,22 +94,40 @@ document.querySelectorAll('.carditem').forEach(function (carditem) {
     });
 });
 
-// Filter checkbox
-const filterCheckboxes = document.querySelectorAll('.checkbox-filter');
+// ================= LOGIK BARU: UNIFIED FILTER SYSTEM =================
+function applyAllFilters() {
+    const searchInput = document.getElementById("search");
+    const query = searchInput ? searchInput.value.toLowerCase().trim() : "";
 
-filterCheckboxes.forEach(function (checkbox) {
-    checkbox.addEventListener('change', function () {
-        const checkedGuns = Array.from(filterCheckboxes)
-            .filter(cb => cb.checked)
-            .map(cb => cb.parentElement.textContent.trim());
+    // Ambil semua value Weapon Type yang dicentang (Fix selektor class jadi .filter-type)
+    const checkedTypes = Array.from(document.querySelectorAll('.filter-type:checked'))
+        .map(cb => cb.value.toLowerCase());
 
-        document.querySelectorAll('.carditem').forEach((card) => {
-            const cardGun = card.dataset.gun;
-            if (checkedGuns.length === 0 || checkedGuns.includes(cardGun)) {
-                card.style.display = '';
-            } else {
-                card.style.display = 'none';
-            }
-        });
+    // Ambil semua value Rarity yang dicentang (Fix selektor class jadi .filter-rarity)
+    const checkedRarities = Array.from(document.querySelectorAll('.filter-rarity:checked'))
+        .map(cb => cb.value.toLowerCase());
+
+    const weaponCards = document.querySelectorAll(".carditem");
+
+    weaponCards.forEach((card) => {
+        const cardGun = card.getAttribute("data-gun").toLowerCase();
+        const cardType = card.getAttribute("data-type").toLowerCase();
+        const cardRarity = card.getAttribute("data-rarity").toLowerCase();
+
+        // 1. Cek kecocokan Search Keyword
+        const matchesSearch = cardGun.includes(query);
+
+        // 2. Cek kecocokan Weapon Type (Jika kosong, otomatis lolos seleksi)
+        const matchesType = checkedTypes.length === 0 || checkedTypes.includes(cardType);
+
+        // 3. Cek kecocokan Rarity (Jika kosong, otomatis lolos seleksi)
+        const matchesRarity = checkedRarities.length === 0 || checkedRarities.includes(cardRarity);
+
+        // Gabungkan seluruh kondisi (Mekanisme Logika AND antar grup)
+        if (matchesSearch && matchesType && matchesRarity) {
+            card.style.display = ""; // Tampilkan
+        } else {
+            card.style.display = "none"; // Sembunyikan
+        }
     });
-});
+}
