@@ -7,7 +7,7 @@ Selamat datang di repositori resmi **severos_blackmarket**. Proyek ini dirancang
 ---
 
 ## 📌 Tentang Proyek
-`severos_blackmarket` adalah solusi untuk kebutuhan [sebutkan tujuan proyek, contoh: perdagangan barang digital/marketplace/dll]. Kami membangun platform ini dengan filosofi *user-centric* untuk memastikan transaksi yang lancar bagi semua pengguna.
+`severos_blackmarket` adalah solusi untuk kebutuhan e-commerce(sebenarnya untuk projek kampus wkwk).
 
 ## 🛠️ Tech Stack
 Proyek ini dibangun menggunakan teknologi terkini untuk memastikan skalabilitas dan keamanan:
