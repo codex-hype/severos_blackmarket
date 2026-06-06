@@ -29,5 +29,5 @@ Ikuti langkah-langkah berikut untuk menjalankan proyek di lingkungan lokal Anda:
 
 1. **Clone repo?:**
    ```bash
-   git clone [https://github.com/username/severos_blackmarket.git](https://github.com/username/severos_blackmarket.git)
+   git clone https://github.com/phoe88/severos_blackmarket.git
    cd severos_blackmarket
